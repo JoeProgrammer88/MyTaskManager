@@ -1,4 +1,7 @@
 ﻿@page "/"
+@using System.Runtime.InteropServices
+@using Microsoft.EntityFrameworkCore
+@using MyTaskManager.Data
 
 <PageTitle>Index</PageTitle>
 
@@ -7,3 +10,33 @@
 Welcome to your new app.
 
 <SurveyPrompt Title="How is Blazor working for you?" />
+
+@code
+{
+    [Inject]
+    private IJSRuntime _js { get; set; }
+
+    [Inject]
+    private IDbContextFactory<TaskManagerContext> _dbContextFactory { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Create("browser")))
+        {
+            // Create SQLite file in browser
+            var module = await _js.InvokeAsync<IJSObjectReference>("import", "./SqliteBrowserConnector.js");
+            await module.InvokeVoidAsync("synchronizeFileWithIndexedDb", "MyTaskManager.db");
+        }
+
+        using TaskManagerContext db = await _dbContextFactory.CreateDbContextAsync();
+        await db.Database.EnsureCreatedAsync();
+
+        if (!db.ToDos.Any())
+        {
+            await db.ToDos.AddAsync(new Models.ToDoItem()
+                {
+                    Name = "Testing"
+                });
+        }
+    }
+}
