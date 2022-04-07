@@ -12,7 +12,7 @@ namespace MyTaskManager.Data
 
         protected override void OnConfiguring(DbContextOptionsBuilder options)
         {
-            options.UseSqlite($"Data Source=MyTaskManager.db;");
+            options.UseSqlite($"Filename=MyTaskManager.db;");
         }
 
         protected override void OnModelCreating(ModelBuilder builder)
