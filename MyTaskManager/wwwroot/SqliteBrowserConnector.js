@@ -1,5 +1,5 @@
 ﻿export function synchronizeFileWithIndexedDb(filename) {
-    return new Promise((res) => {
+    return new Promise((res, rej) => {
         const db = window.indexedDB.open('SqliteStorage', 1);
         db.onupgradeneeded = () => {
             db.result.createObjectStore('Files', { keypath: 'id' });
@@ -13,8 +13,9 @@
             };
         };
 
-        // DB Sync every 1000ms
         /*
+         * Autosync database
+        // DB Sync every 30 seconds
         let lastModifiedTime = new Date();
         setInterval(() => {
             const path = `/${filename}`;
@@ -26,7 +27,21 @@
                     db.result.transaction('Files', 'readwrite').objectStore('Files').put(data, 'file');
                 }
             }
-        }, 1000);
+        }, 30000);
         */
+    });
+}
+
+export function saveDatabaseToBrowser(filename) {
+    return new Promise((res, rej) => {
+        const path = `/${filename}`;
+        if (FS.analyzePath(path).exists) {
+            const data = FS.readFile(path);
+            const db = window.indexedDB.open('SqliteStorage', 1);
+            db.onsuccess = () => {
+                db.result.transaction('Files', 'readwrite').objectStore('Files').put(data, 'file');
+                res();
+            }  
+        }
     });
 }

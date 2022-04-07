@@ -16,6 +16,10 @@
     <button class="btn btn-primary" @onclick="@(async() => await AddTask())">Add Task</button>
 </div>
 
+<div id="save-data">
+    <button class="btn btn-primary" disabled="@_isDataSaved" @onclick="@(async() => await SaveData())">Save Data</button>
+</div>
+
 <div id="todo-list">
     <table class="table table-striped table-hover">
         <thead>
@@ -29,8 +33,7 @@
             {
                 <tr>
                     <td>@item.Id</td>
-                    <td>@item.Title</td>
-                    
+                    <td><input type="text" @bind="@item.Title"></td>
                     <td>
                         <button class="btn btn-primary" @onclick="@(async() => await UpdateTask(item))">Edit</button>
                         <button class="btn btn-danger" @onclick="@(async() => await DeleteTask(item))">Delete</button>
@@ -44,6 +47,8 @@
 
 @code
 {
+    private bool _isDataSaved = true;
+
     private List<ToDoItem> todos = new List<ToDoItem>();
 
     private string _newTitle = null!;
@@ -66,7 +71,20 @@
         using TaskManagerContext db = await _dbContextFactory.CreateDbContextAsync();
         await db.Database.EnsureCreatedAsync();
 
+        if (!db.ToDos.Any())
+        {
+            await db.ToDos.AddRangeAsync(
+                new ToDoItem { Title = "First Task" },
+                new ToDoItem { Title = "Second Task" },
+                new ToDoItem { Title = "Third Task" }
+            );
+
+            await db.SaveChangesAsync();
+        }
+
         todos = await db.ToDos.ToListAsync();
+
+        await base.OnInitializedAsync();
     }
 
     private async Task AddTask()
@@ -79,17 +97,22 @@
 
         // Add to UI
         todos.Add(item);
+
+        _isDataSaved = false;
     }
 
     private async Task DeleteTask(ToDoItem item)
     {
         using TaskManagerContext db = await _dbContextFactory.CreateDbContextAsync();
-        
+
         // Remove from Database
         db.ToDos.Remove(item);
+        await db.SaveChangesAsync();
 
         // Remove from UI
         todos.Remove(item);
+
+        _isDataSaved = false;
     }
 
     private async Task UpdateTask(ToDoItem item)
@@ -97,5 +120,14 @@
         using TaskManagerContext db = await _dbContextFactory.CreateDbContextAsync();
         db.ToDos.Update(item);
         await db.SaveChangesAsync();
+
+        _isDataSaved = false;
+    }
+
+    private async Task SaveData()
+    {
+        var module = await _js.InvokeAsync<IJSObjectReference>("import", "./SqliteBrowserConnector.js");
+        await module.InvokeVoidAsync("saveDatabaseToBrowser", "MyTaskManager.db");
+        _isDataSaved = true;
     }
 }
