@@ -2,13 +2,52 @@
 @using System.Runtime.InteropServices
 @using Microsoft.EntityFrameworkCore
 @using MyTaskManager.Data
+@using Models
 
 <PageTitle>Index</PageTitle>
 
 <h1>Task Manager</h1>
 
+<div id="add-task">
+    <label for="title">Title</label>
+    <input type="text" id="title" @bind="_newTitle" />
+    
+    <br />
+    <button class="btn btn-primary" @onclick="@(async() => await AddTask())">Add Task</button>
+</div>
+
+<div id="todo-list">
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Title</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (ToDoItem item in todos)
+            {
+                <tr>
+                    <td>@item.Id</td>
+                    <td>@item.Title</td>
+                    
+                    <td>
+                        <button class="btn btn-primary" @onclick="@(async() => await UpdateTask(item))">Edit</button>
+                        <button class="btn btn-danger" @onclick="@(async() => await DeleteTask(item))">Delete</button>
+                    </td>
+                    
+                </tr>
+            }
+        </tbody>
+   </table>
+</div>
+
 @code
 {
+    private List<ToDoItem> todos = new List<ToDoItem>();
+
+    private string _newTitle = null!;
+
     [Inject]
     private IJSRuntime _js { get; set; }
 
@@ -27,12 +66,36 @@
         using TaskManagerContext db = await _dbContextFactory.CreateDbContextAsync();
         await db.Database.EnsureCreatedAsync();
 
-        if (!db.ToDos.Any())
-        {
-            await db.ToDos.AddAsync(new Models.ToDoItem()
-                {
-                    Name = "Testing"
-                });
-        }
+        todos = await db.ToDos.ToListAsync();
+    }
+
+    private async Task AddTask()
+    {
+        // Add to Database
+        using TaskManagerContext db = await _dbContextFactory.CreateDbContextAsync();
+        ToDoItem item = new ToDoItem { Title = _newTitle };
+        await db.ToDos.AddAsync(item);
+        await db.SaveChangesAsync();
+
+        // Add to UI
+        todos.Add(item);
+    }
+
+    private async Task DeleteTask(ToDoItem item)
+    {
+        using TaskManagerContext db = await _dbContextFactory.CreateDbContextAsync();
+        
+        // Remove from Database
+        db.ToDos.Remove(item);
+
+        // Remove from UI
+        todos.Remove(item);
+    }
+
+    private async Task UpdateTask(ToDoItem item)
+    {
+        using TaskManagerContext db = await _dbContextFactory.CreateDbContextAsync();
+        db.ToDos.Update(item);
+        await db.SaveChangesAsync();
     }
 }
