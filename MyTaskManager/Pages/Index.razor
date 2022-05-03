@@ -26,6 +26,7 @@
             <tr>
                 <th>Id</th>
                 <th>Title</th>
+                <th>Complete</th>
             </tr>
         </thead>
         <tbody>
@@ -33,7 +34,25 @@
             {
                 <tr>
                     <td>@item.Id</td>
-                    <td><input type="text" @bind="@item.Title"></td>
+                    <td>
+                        <input type="text" @bind="@item.Title">
+                    </td>
+                    <td>
+                        <input type="checkbox" @bind="@item.IsDone" @onclick=@(async() => await MarkAsCompleted(item))>
+                    </td>
+                    <td>
+                        <label>Days to recur</label>
+                        <input type="number" @bind="@item.DaysToRecur">
+                    </td>
+                    <td>
+                        <input type="checkbox" @bind="@item.IsRecurring"> Is Recurring?
+                    </td>
+                    <td>
+                        <input type="checkbox" @bind="@item.IsMoveableDate"> Is Moveable Date?
+                    </td>
+                    <td>
+                        <label>@item.DueDate</label>
+                    </td>
                     <td>
                         <button class="btn btn-primary" @onclick="@(async() => await UpdateTask(item))">Edit</button>
                         <button class="btn btn-danger" @onclick="@(async() => await DeleteTask(item))">Delete</button>

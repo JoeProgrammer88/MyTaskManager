@@ -53,7 +53,7 @@ namespace MyTaskManager.Pages
         {
             // Add to Database
             using TaskManagerContext db = await _dbContextFactory.CreateDbContextAsync();
-            ToDoItem item = new ToDoItem { Title = _newTitle };
+            ToDoItem item = new() { Title = _newTitle };
             await db.ToDos.AddAsync(item);
             await db.SaveChangesAsync();
 
@@ -91,6 +91,38 @@ namespace MyTaskManager.Pages
             var module = await _js.InvokeAsync<IJSObjectReference>("import", "./SqliteBrowserConnector.js");
             await module.InvokeVoidAsync("saveDatabaseToBrowser", "MyTaskManager.db");
             _isDataSaved = true;
+        }
+
+        private async Task MarkAsCompleted(ToDoItem item)
+        {
+            if (!item.IsDone) // If item wasn't marked as done previously
+            {
+                // Mark the current item as complete in database
+                using TaskManagerContext db = await _dbContextFactory.CreateDbContextAsync();
+                db.ToDos.Update(item);
+                await db.SaveChangesAsync();
+
+                // Add new item if recurring
+                if (item.IsRecurring)
+                {
+                    ToDoItem newItem = new() 
+                    { 
+                        Title = item.Title, 
+                        IsDone = false,
+                        IsRecurring = true,
+                        IsMoveableDate = item.IsMoveableDate,
+                        DaysToRecur = item.DaysToRecur
+                    };
+
+                    newItem.SetDueDate();
+                    await db.ToDos.AddAsync(newItem);
+                    await db.SaveChangesAsync();
+
+                    todos.Add(newItem);
+                }
+
+                _isDataSaved = false;
+            }
         }
     }
 }
